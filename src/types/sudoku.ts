@@ -124,11 +124,13 @@ export interface ServerEvents {
   ROOM_CREATED: {
     code: string;
     seed: number;
+    difficulty: Difficulty;
     board: SerializedBoard;
     isCustomSeed: boolean;
     validationMode: ValidationMode;
     sessionToken: string;
     playerId: string;
+    nickname: string;
     color: PlayerColor;
   };
   ROOM_JOINED: {
@@ -160,9 +162,14 @@ export interface ServerEvents {
     playerId: string;
   };
   ROOM_STATE: {
+    code: string;
     board: SerializedBoard;
     players: SerializedPlayer[];
     timer: number;
+    difficulty: Difficulty;
+    seed: number;
+    isCustomSeed: boolean;
+    validationMode: ValidationMode;
     yourNotes: Record<string, number[]>;
     cellOwners: Record<string, string>;
   };
