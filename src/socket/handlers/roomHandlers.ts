@@ -1,9 +1,5 @@
 import { Server, Socket } from "socket.io";
-import {
-  createRoom,
-  joinRoom,
-  rejoinRoom,
-} from "../../rooms/roomManager";
+import { createRoom, joinRoom, rejoinRoom } from "../../rooms/roomManager";
 import {
   serializeBoard,
   serializePlayers,
@@ -14,55 +10,54 @@ import { ClientEvents, Difficulty, ValidationMode } from "../../types/sudoku";
 
 export function registerRoomHandlers(io: Server, socket: Socket): void {
   // ---- CREATE_ROOM ----
-  socket.on(
-    "CREATE_ROOM",
-    (data: ClientEvents["CREATE_ROOM"]) => {
-      const { nickname, difficulty, seed, validationMode } = data;
+  socket.on("CREATE_ROOM", (data: ClientEvents["CREATE_ROOM"]) => {
+    const { nickname, difficulty, seed, validationMode } = data;
 
-      // Basic validation
-      if (!nickname || nickname.trim().length === 0) {
-        socket.emit("ERROR", { message: "Nickname is required" });
-        return;
-      }
-      if (!["easy", "medium", "hard"].includes(difficulty)) {
-        socket.emit("ERROR", { message: "Invalid difficulty" });
-        return;
-      }
-      if (!["conflict", "strict"].includes(validationMode)) {
-        socket.emit("ERROR", { message: "Invalid validation mode" });
-        return;
-      }
-
-      const result = createRoom(
-        socket.id,
-        nickname.trim(),
-        difficulty as Difficulty,
-        validationMode as ValidationMode,
-        seed
-      );
-
-      if ("error" in result) {
-        socket.emit("ERROR", { message: result.error });
-        return;
-      }
-
-      const { room, player } = result;
-
-      // Join socket.io room
-      socket.join(room.code);
-
-      socket.emit("ROOM_CREATED", {
-        code: room.code,
-        seed: room.seed,
-        board: serializeBoard(room.board),
-        isCustomSeed: room.isCustomSeed,
-        validationMode: room.validationMode,
-        sessionToken: player.sessionToken,
-        playerId: player.id,
-        color: player.color,
-      });
+    // Basic validation
+    if (!nickname || nickname.trim().length === 0) {
+      socket.emit("ERROR", { message: "Nickname is required" });
+      return;
     }
-  );
+    if (!["easy", "medium", "hard"].includes(difficulty)) {
+      socket.emit("ERROR", { message: "Invalid difficulty" });
+      return;
+    }
+    if (!["conflict", "strict"].includes(validationMode)) {
+      socket.emit("ERROR", { message: "Invalid validation mode" });
+      return;
+    }
+
+    const result = createRoom(
+      socket.id,
+      nickname.trim(),
+      difficulty as Difficulty,
+      validationMode as ValidationMode,
+      seed,
+    );
+
+    if ("error" in result) {
+      socket.emit("ERROR", { message: result.error });
+      return;
+    }
+
+    const { room, player } = result;
+
+    // Join socket.io room
+    socket.join(room.code);
+
+    socket.emit("ROOM_CREATED", {
+      code: room.code,
+      seed: room.seed,
+      difficulty: room.difficulty,
+      board: serializeBoard(room.board),
+      isCustomSeed: room.isCustomSeed,
+      validationMode: room.validationMode,
+      sessionToken: player.sessionToken,
+      playerId: player.id,
+      nickname: player.nickname,
+      color: player.color,
+    });
+  });
 
   // ---- JOIN_ROOM ----
   socket.on("JOIN_ROOM", (data: ClientEvents["JOIN_ROOM"]) => {
@@ -91,6 +86,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
     // Send full state to the joining player
     socket.emit("ROOM_JOINED", {
+      code: room.code,
       board: serializeBoard(room.board),
       players: serializePlayers(room),
       seed: room.seed,
@@ -140,9 +136,14 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
     // Send current state to reconnected player
     socket.emit("ROOM_STATE", {
+      code: room.code,
       board: serializeBoard(room.board),
       players: serializePlayers(room),
       timer: room.timer,
+      difficulty: room.difficulty,
+      seed: room.seed,
+      isCustomSeed: room.isCustomSeed,
+      validationMode: room.validationMode,
       yourNotes: serializeNotes(player.notes),
       cellOwners: serializeCellOwners(room.cellOwners),
     });
